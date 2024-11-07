@@ -1,0 +1,5 @@
+# dependencies
+*.code-workspace
+
+# virtualenv
+venv/
