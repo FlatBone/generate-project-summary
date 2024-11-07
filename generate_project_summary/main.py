@@ -148,10 +148,14 @@ def read_summaryignore(project_dir: Path) -> list:
     return []
 
 
-if __name__ == "__main__":
+def main():
     project_directory = input(
         "Enter the project directory path (leave blank for current directory): "
     )
     if not project_directory:
         project_directory = Path.cwd()
     generate_project_summary(project_directory)
+
+
+if __name__ == "__main__":
+    main()

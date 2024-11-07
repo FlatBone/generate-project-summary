@@ -5,7 +5,10 @@ description = "AIに読みやすいよう､プロジェクトの構造とファ
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.scripts]
-generate-project-summary = "generate_project_summary:main"
+generate-project-summary = "generate_project_summary.main:main"
+
+[tool.setuptools]
+package-dir = { "" = "generate_project_summary" }
 
 [tool.poetry.dependencies]
 python = "*"

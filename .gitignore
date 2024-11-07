@@ -1,5 +1,8 @@
 # dependencies
+__pycache__/
+*.pyc
 *.code-workspace
 
 # virtualenv
 venv/
+*_project_summary.txt
