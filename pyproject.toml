@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "generate-project-summary"
+version = "0.1.0"
+description = "AIに読みやすいよう､プロジェクトの構造とファイル内容のサマリーをMarkdownに生成する。"
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.scripts]
+generate-project-summary = "generate_project_summary.main:main"
+
+[tool.setuptools]
+package-dir = { "" = "generate_project_summary" }
+
+[tool.poetry.dependencies]
+python = "*"
+chardet = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+

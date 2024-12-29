@@ -1,6 +1,5 @@
-import os
+from pathlib import Path
 import fnmatch
-import chardet
 
 
 def is_binary(file_path):
@@ -27,20 +26,25 @@ def is_ignored(
     summaryignore_patterns,
     additional_ignore_patterns,
 ):
-    relative_path = os.path.relpath(path, project_dir)
+    try:
+        relative_path = path.relative_to(project_dir)
+    except ValueError:
+        # path が project_dir のサブパスでない場合、相対パスを '.' とする
+        relative_path = Path(".")
     for pattern in (
         gitignore_patterns + summaryignore_patterns + additional_ignore_patterns
     ):
         pattern = f"*{pattern}*"
-        if fnmatch.fnmatch(relative_path, pattern) or fnmatch.fnmatch(
-            f"{os.sep}{relative_path}", pattern
+        if fnmatch.fnmatch(str(relative_path), pattern) or fnmatch.fnmatch(
+            f"/{relative_path}", pattern
         ):
             return True
     return False
 
 
 def generate_project_summary(project_dir):
-    project_name = os.path.basename(project_dir)
+    project_dir = Path(project_dir).resolve()
+    project_name = project_dir.name
     summary = f"# {project_name}\n\n## Directory Structure\n\n"
 
     gitignore_patterns = read_gitignore(project_dir)
@@ -56,10 +60,10 @@ def generate_project_summary(project_dir):
 
     file_contents_section = "\n## File Contents\n\n"
 
-    def traverse_directory(root, level):
+    def traverse_directory(root: Path, level: int):
         nonlocal summary, file_contents_section
         indent = "  " * level
-        relative_path = os.path.relpath(root, project_dir)
+        relative_path = root.relative_to(project_dir)
         if not is_ignored(
             relative_path,
             project_dir,
@@ -67,12 +71,11 @@ def generate_project_summary(project_dir):
             summaryignore_patterns,
             additional_ignore_patterns,
         ):
-            summary += f"{indent}- {os.path.basename(root)}/\n"
+            summary += f"{indent}- {root.name}/\n"
 
             subindent = "  " * (level + 1)
-            for item in os.listdir(root):
-                item_path = os.path.join(root, item)
-                if os.path.isdir(item_path):
+            for item_path in root.iterdir():
+                if item_path.is_dir():
                     if not is_ignored(
                         item_path,
                         project_dir,
@@ -90,16 +93,14 @@ def generate_project_summary(project_dir):
                         additional_ignore_patterns,
                     ):
                         if not is_binary(item_path):
-                            summary += f"{subindent}- {item}\n"
+                            summary += f"{subindent}- {item_path.name}\n"
                             content = read_file_contents(item_path)
                             if content.strip():
                                 # ファイル名をプロジェクト名からの相対パスで表示
-                                relative_file_path = os.path.relpath(
-                                    item_path, project_dir
-                                )
+                                relative_file_path = item_path.relative_to(project_dir)
                                 file_contents_section += f"### {relative_file_path}\n\n```\n{content}\n```\n\n"
                         else:
-                            summary += f"{subindent}- {item} (binary file)\n"
+                            summary += f"{subindent}- {item_path} (binary file)\n"
 
     traverse_directory(project_dir, 0)
 
@@ -107,10 +108,10 @@ def generate_project_summary(project_dir):
         file.write(summary + file_contents_section)
 
 
-def read_gitignore(project_dir):
-    gitignore_path = os.path.join(project_dir, ".gitignore")
-    if os.path.exists(gitignore_path):
-        with open(gitignore_path, "r") as file:
+def read_gitignore(project_dir: Path) -> list:
+    gitignore_path = project_dir / ".gitignore"
+    if gitignore_path.exists():
+        with open(gitignore_path, "r", encoding="utf-8") as file:
             patterns = [
                 line.strip()
                 for line in file
@@ -127,10 +128,10 @@ def read_gitignore(project_dir):
     return []
 
 
-def read_summaryignore(project_dir):
-    summaryignore_path = os.path.join(project_dir, ".summaryignore")
-    if os.path.exists(summaryignore_path):
-        with open(summaryignore_path, "r") as file:
+def read_summaryignore(project_dir: Path) -> list:
+    summaryignore_path = project_dir / ".summaryignore"
+    if summaryignore_path.exists():
+        with open(summaryignore_path, "r", encoding="utf-8") as file:
             patterns = [
                 line.strip()
                 for line in file
@@ -147,10 +148,14 @@ def read_summaryignore(project_dir):
     return []
 
 
-if __name__ == "__main__":
+def main():
     project_directory = input(
         "Enter the project directory path (leave blank for current directory): "
     )
     if not project_directory:
-        project_directory = os.getcwd()
+        project_directory = Path.cwd()
     generate_project_summary(project_directory)
+
+
+if __name__ == "__main__":
+    main()
