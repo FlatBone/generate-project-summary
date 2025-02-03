@@ -1,6 +1,6 @@
 from pathlib import Path
 import fnmatch
-from ignore_patterns import IgnorePatterns
+from .ignore_patterns import IgnorePatterns
 
 class ProjectSummarizer:
     def __init__(self, project_dir):
