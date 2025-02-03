@@ -1,5 +1,5 @@
 from pathlib import Path
-from summarizer import ProjectSummarizer
+from .summarizer import ProjectSummarizer
 
 def main():
     project_directory = input(
