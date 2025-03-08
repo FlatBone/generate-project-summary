@@ -6,6 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.scripts]
 generate-project-summary = "generate_project_summary.main:main"
+gen-pro = "generate_project_summary.main:main"
 
 [tool.setuptools]
 package-dir = { "" = "generate_project_summary" }
