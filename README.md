@@ -17,36 +17,35 @@
 
    - **リポジトリをクローン**:
 
-    ```
-    git clone https://github.com/NEXTAltair/generate-project-summary.git
-    cd generate-project-summary
-    pip install .
-    ```
+   ```
+   git clone https://github.com/NEXTAltair/generate-project-summary.git
+   cd generate-project-summary
+   pip install .
+   ```
 
    - **GitHubから直接インストール**:
 
-    ```
-    pip install git+https://github.com/NEXTAltair/generate-project-summary.git
-    ```
+   ```
+   pip install git+https://github.com/NEXTAltair/generate-project-summary.git
+   ```
 2. ターミナルまたはコマンドプロンプトを開き、スクリプトを実行します：
 
-    ```
-    generate-project-summary
-    ```
+   ```
+   generate-project-summary
+   ```
 
-    または
+   または
 
-    ```
-    gen-pro
-    ```
+   ```
+   gen-pro
+   ```
 3. プロンプトが表示されたら、プロジェクトディレクトリのパスを入力してください。
-    パスが指定されない場合、現在のディレクトリがデフォルトとして使用されます。
-    絶対パス、相対パスに対応しています。
+   パスが指定されない場合、現在のディレクトリがデフォルトとして使用されます。
+   絶対パス、相対パスに対応しています。
 
-    ```
-    Enter the project directory path (leave blank for current directory):
-    ```
-
+   ```
+   Enter the project directory path (leave blank for current directory):
+   ```
 4. プロジェクトのサマリーが`<project_name>_project_summary.txt`という名前で現在のディレクトリに保存されます。
 
 ``````
@@ -123,6 +122,69 @@ __pycache__
 venv/
 ```
 
+## オプション一覧
+
+コマンド実行時に以下のオプションを指定できます。
+複数のオプションを組み合わせて使用することも可能です。
+
+
+| オプション | 説明 (日本語) |
+| ---------- | ------------- ||
+| `-d, --directory [PATH]` | `-d` のみ指定するとカレントディレクトリを使用して対話なしで実行できます。<br>対象のプロジェクトディレクトリを指定すると対話なしで実行できます。 |
+| `-o, --output FILE`| 出力ファイル名を指定できます。|
+| `-i, --ignore PATTERN`| 無視するファイル/フォルダのパターンを追加指定できます。<br>複数回使用可能 (`-i '*.log' -i 'temp/'`)。|
+| `-t, --type EXT`| 対象とするファイル拡張子を指定します。<br>デフォルトは全てのファイルが対象です。<br>複数回使用可能 (`-t .py -t .md`)。|
+
+### 使用例 / Examples
+
+#### 1. カレントディレクトリを対象に対話なしで実行する
+
+```sh
+gen-pro -d
+```
+
+#### 2. 特定のディレクトリを指定して対話なしで実行する
+
+対話なしで特定のディレクトリを指定できます。
+
+```sh
+gen-pro -d src
+```
+
+#### 3. 出力ファイル名を変更する
+
+出力ファイル名を指定できます。
+
+```sh
+gen-pro -o summary.txt
+```
+
+#### 4. 無視するパターンを追加する
+
+.gitignore、.summaryignoreだけでなく、一時的に対象外にできます。
+.log、tempフォルダを無視したい場合
+
+```sh
+gen-pro -i '*.log' -i 'temp/'
+```
+
+#### 5. 解析対象のファイル拡張子を指定する
+
+.pyと.mdのみ対象にしたい場合
+
+```sh
+gen-pro -t .py -t .md
+```
+
+#### 6. 複数のオプションを組み合わせる
+
+複数のオプションを自由に組み合わせることで、柔軟な設定が可能です。
+対話なしで`src`フォルダを対象に、`.log`を無視して、`.py`と`.md`のみを`summary.txt`というファイル名で作成したい場合
+
+```sh
+gen-pro -d src -i '*.log' -t .py -t .md -o summary.txt
+```
+
 ## 依存関係
 
 このスクリプトは外部の依存関係を必要としません。Pythonの組み込みの`os`と`fnmatch`モジュールを使用します。
@@ -156,32 +218,33 @@ This Python script generates a project summary by traversing the project's folde
 
    - **Clone the repository**:
 
-    ```
-    git clone https://github.com/NEXTAltair/generate-project-summary.git
-    cd generate-project-summary
-    pip install .
-    ```
+   ```
+   git clone https://github.com/NEXTAltair/generate-project-summary.git
+   cd generate-project-summary
+   pip install .
+   ```
 
    - **Install directly from GitHub**:
 
-    ```
-    pip install git+https://github.com/NEXTAltair/generate-project-summary.git
-    ```
+   ```
+   pip install git+https://github.com/NEXTAltair/generate-project-summary.git
+   ```
 2. Open a terminal or command prompt and run the script:
 
-    ```
-    generate-project-summary
-    ```
+   ```
+   generate-project-summary
+   ```
 
-    or
-    ```
-    gen-pro
-    ```
+   or
+
+   ```
+   gen-pro
+   ```
 3. When prompted, enter the project directory path. If no path is specified, the current directory will be used by default. Supports both absolute and relative paths.
 
-    ```
-    Enter the project directory path (leave blank for current directory):
-    ```
+   ```
+   Enter the project directory path (leave blank for current directory):
+   ```
 4. The project summary will be saved in the current directory as `<project_name>_project_summary.txt`.
 
 ``````
@@ -247,10 +310,68 @@ __pycache__
 venv/
 ```
 
+Here’s the English translation of the "オプション一覧" (List of Options) section from your provided text:
+
+---
+
+## List of Options
+
+The following options can be specified when running the command. You can also combine multiple options as needed.
+
+| Options                  | Description (English)                                                                                                                                 |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-d, --directory [PATH]` | If only `-d` is specified, it runs non-interactively using the current directory.<br>Specifying a target project directory runs it non-interactively. |
+| `-o, --output FILE`      | Allows you to specify the output file name.                                                                                                           |
+| `-i, --ignore PATTERN`   | Adds patterns for files/folders to ignore.<br>Can be used multiple times (e.g., `-i '*.log' -i 'temp/'`).                                             |
+| `-t, --type EXT`         | Specifies the file extensions to include.<br>By default, all files are included.<br>Can be used multiple times (e.g., `-t .py -t .md`).               |
+
+### Usage Examples
+
+#### 1. Run non-interactively targeting the current directory
+```
+gen-pro -d
+```
+
+#### 2. Run non-interactively targeting a specific directory
+Specify a directory non-interactively:
+```
+gen-pro -d src
+```
+
+#### 3. Change the output file name
+Specify a custom output file name:
+```
+gen-pro -o summary.txt
+```
+
+#### 4. Add patterns to ignore
+Temporarily exclude additional patterns beyond `.gitignore` and `.summaryignore`. For example, to ignore `.log` files and the `temp/` folder:
+```
+gen-pro -i '*.log' -i 'temp/'
+```
+
+#### 5. Specify target file extensions
+Target only `.py` and `.md` files:
+```
+gen-pro -t .py -t .md
+```
+
+#### 6. Combine multiple options
+Flexibly combine options. For example, to target the `src` folder non-interactively, ignore `.log` files, include only `.py` and `.md` files, and save as `summary.txt`:
+```
+gen-pro -d src -i '*.log' -t .py -t .md -o summary.txt
+```
+
+---
+
+Let me know if you need further adjustments!
+
 ## Dependencies
+
 This script does not require any external dependencies. It uses Python's built-in `os` and `fnmatch` modules.
 
 ## Contributing
+
 Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on the GitHub repository.
 
 ## License
