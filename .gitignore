@@ -4,5 +4,7 @@ __pycache__/
 *.code-workspace
 
 # virtualenv
+.venv/
 venv/
 *_project_summary.txt
+.pytest_cache/
