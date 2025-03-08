@@ -15,7 +15,8 @@ def main():
         help=(
             "Specify the project directory path.\n"
             "-d alone: Targets the current directory without interaction.\n"
-            "-d with path: Targets the specified path without interaction."
+            "-d with path: Targets the specified path without interaction.\n"
+            "Note: On Windows and bash, enclose paths with backslashes (e.g., D:\\tools\\project) in quotes."
         )
     )
     parser.add_argument(
@@ -44,10 +45,24 @@ def main():
         project_directory = input(
             "Enter the project directory path (leave blank for current directory): "
         )
-        project_directory = Path(project_directory) if project_directory.strip() else Path.cwd()
+        project_directory = Path(project_directory).resolve() if project_directory.strip() else Path.cwd()
     else:
         # -d が指定された場合
-        project_directory = Path(args.directory)
+        if args.directory == "":
+            # -d のみの場合、カレントディレクトリを使用
+            project_directory = Path.cwd()
+        else:
+            # Windowsパス対策: \ を / に置き換えて一貫性を保つ
+            sanitized_path = args.directory.replace("\\", "/")
+            project_directory = Path(sanitized_path)
+            # 相対パスの場合はカレントディレクトリを基準に解決
+            if not project_directory.is_absolute():
+                project_directory = Path.cwd() / project_directory
+            # パスの存在チェック
+            if not project_directory.exists():
+                raise FileNotFoundError(f"Directory does not exist: {project_directory}")
+            # 絶対パスに変換
+            project_directory = project_directory.resolve()
 
     summarizer = ProjectSummarizer(
         project_directory,
