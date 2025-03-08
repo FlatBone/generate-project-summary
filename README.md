@@ -145,11 +145,16 @@ gen-pro -d
 
 #### 2. 特定のディレクトリを指定して対話なしで実行する
 
-対話なしで特定のディレクトリを指定できます。
+対話なしで特定のディレクトリを指定できます。相対パス、絶対パスに対応しています。
+
 
 ```sh
 gen-pro -d src
 ```
+
+Windows でバックスラッシュ (`\`) を含むパスを指定する場合、シェルの種類に注意してください：
+- **CMD (コマンドプロンプト)**: `gen-pro -d D:\project\src` のようにクォートなしで動作します。
+- **bash (例: Git Bash)**: `gen-pro -d "D:\project\src"` のようにクォートで囲む必要があります。クォートしないと `\` が正しく解釈されず、エラーが発生する可能性があります。
 
 #### 3. 出力ファイル名を変更する
 
@@ -333,10 +338,16 @@ gen-pro -d
 ```
 
 #### 2. Run non-interactively targeting a specific directory
-Specify a directory non-interactively:
-```
+You can specify a particular directory to run the script non-interactively. Both relative and absolute paths are supported.
+
+```sh
 gen-pro -d src
 ```
+
+When specifying a path with backslashes (`\`) on Windows, pay attention to the type of shell you are using:
+- **CMD (Command Prompt)**: Works without quotes, e.g., `gen-pro -d D:\project\src`.
+- **bash (e.g., Git Bash)**: Requires quotes, e.g., `gen-pro -d "D:\project\src"`. Without quotes, the `\` may not be interpreted correctly, potentially causing errors.
+
 
 #### 3. Change the output file name
 Specify a custom output file name:
