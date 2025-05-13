@@ -18,7 +18,7 @@
    - **リポジトリをクローン**:
 
    ```
-   git clone https://github.com/NEXTAltair/generate-project-summary.git
+   git clone https://github.com/FlatBone/generate-project-summary.git
    cd generate-project-summary
    pip install .
    ```
