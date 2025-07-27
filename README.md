@@ -26,7 +26,7 @@
    - **GitHubから直接インストール**:
 
    ```
-   pip install git+https://github.com/NEXTAltair/generate-project-summary.git
+   pip install git+https://github.com/FlatBone/generate-project-summary.git
    ```
 2. ターミナルまたはコマンドプロンプトを開き、スクリプトを実行します：
 
