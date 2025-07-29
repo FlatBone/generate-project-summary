@@ -13,7 +13,6 @@ package-dir = { "" = "generate_project_summary" }
 
 [tool.poetry.dependencies]
 python = "*"
-chardet = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
