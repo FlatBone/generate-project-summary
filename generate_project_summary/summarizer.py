@@ -70,20 +70,50 @@ class ProjectSummarizer:
                 )
 
     def _is_ignored(self, path: Path) -> bool:
-        """無視パターンに基づいてパスを無視すべきかどうかをチェックする。"""
+        """
+        無視パターンに基づいてパスを無視すべきかどうかをチェックする。
+        .gitignoreの挙動を模倣し、クロスプラットフォームで動作するように修正。
+        """
         try:
-            relative_path = path.relative_to(self.project_dir)
+            # WindowsでもLinuxでも比較できるように、パス区切り文字を'/'に正規化する
+            relative_path_str = str(path.relative_to(self.project_dir)).replace('\\', '/')
         except ValueError:
-            relative_path = Path(".")
+            # プロジェクトディレクトリ外など、通常は発生しないケース
+            return False
+
         patterns = (
             self.gitignore.patterns
             + self.summaryignore.patterns
             + self.additional_ignore
         )
+
         for p in patterns:
-            p = f"*{p}*"  # Wildcard matching
-            if fnmatch.fnmatch(str(relative_path), p) or fnmatch.fnmatch(f"/{relative_path}", p):
+            # パターンも正規化
+            p_norm = p.replace('\\', '/').strip()
+            if not p_norm:
+                continue
+
+            # ケース1: パターンが'/'で終わる場合 (例: 'venv/', 'docs/')
+            # これはディレクトリとその中身全てを無視するパターン
+            if p_norm.endswith('/'):
+                dir_pattern = p_norm.rstrip('/')
+                # パスがそのディレクトリ自身か、そのディレクトリから始まるかをチェック
+                if relative_path_str == dir_pattern or relative_path_str.startswith(dir_pattern + '/'):
+                    return True
+                continue
+
+            # ケース2: パターンに'/'が含まれない場合 (例: '*.log', '__pycache__')
+            # これはパスのどの部分（ファイル名やディレクトリ名）にでもマッチする
+            if '/' not in p_norm:
+                if fnmatch.fnmatch(path.name, p_norm):
+                    return True
+                continue
+
+            # ケース3: パターンに'/'が含まれる場合 (例: 'src/main.py')
+            # これはプロジェクトルートからの相対パスとしてマッチするかをチェック
+            if fnmatch.fnmatch(relative_path_str, p_norm):
                 return True
+
         return False
 
     @staticmethod

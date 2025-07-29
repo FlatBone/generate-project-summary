@@ -14,12 +14,5 @@ class IgnorePatterns:
             file_path (path): .gitignoreや.summaryignoreのパス
         """
         with open(file_path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-        for pattern in lines:
-            self.patterns.append(pattern)
-            # OSごとの区切り差分対策としてパターン置換も加える
-            # Note: Win以外では未テスト
-            if "/" in pattern:
-                self.patterns.append(pattern.replace("/", "\\"))
-            if "\\" in pattern:
-                self.patterns.append(pattern.replace("\\", "/"))
+            # パターンをそのままリストに追加するだけにする
+            self.patterns = [line.strip() for line in f if line.strip() and not line.startswith("#")]
