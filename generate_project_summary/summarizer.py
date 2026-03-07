@@ -1,8 +1,13 @@
-from pathlib import Path
-import fnmatch
+﻿from pathlib import Path
+import stat
+
 from .ignore_patterns import IgnorePatterns
 
+
 class ProjectSummarizer:
+    DEFAULT_MAX_TEXT_FILE_BYTES = 1_000_000
+    TEXT_ENCODINGS = ("utf-8", "utf-8-sig", "shift_jis")
+
     def __init__(self, project_dir, additional_ignore_patterns=None, file_types=None):
         """
         Args:
@@ -14,17 +19,21 @@ class ProjectSummarizer:
         self.project_name = self.project_dir.name
         self.gitignore = IgnorePatterns(self.project_dir / ".gitignore")
         self.summaryignore = IgnorePatterns(self.project_dir / ".summaryignore")
-        self.additional_ignore = [
-            "generate_project_summary.py",
+
+        internal_patterns = [
             ".summaryignore",
             f"{self.project_name}_project_summary.txt",
-            ".git",
+            ".git/",
         ]
         if additional_ignore_patterns:
-            self.additional_ignore.extend(additional_ignore_patterns)
-        self.file_types = file_types or []  # Empty list means all files are included
+            internal_patterns.extend(additional_ignore_patterns)
+        self.additional_ignore = IgnorePatterns(patterns=internal_patterns)
+
+        self.file_types = file_types or []
         self.summary_content = ""
         self.file_contents_section = "\n## File Contents\n\n"
+        self.skipped_items = []
+        self.max_text_file_bytes = self.DEFAULT_MAX_TEXT_FILE_BYTES
 
     def generate_project_summary(self, output_file=None):
         """
@@ -34,87 +43,132 @@ class ProjectSummarizer:
             output_file (str, optional): 出力ファイル名。デフォルトは <project_name>_project_summary.txt
         """
         self.summary_content = f"# {self.project_name}\n\n## Directory Structure\n\n"
+        self.file_contents_section = "\n## File Contents\n\n"
+        self.skipped_items = []
         self._traverse_directory(self.project_dir, 0)
         output_file = output_file or f"{self.project_name}_project_summary.txt"
+
+        skipped_section = ""
+        if self.skipped_items:
+            skipped_lines = "\n".join(f"- {item}" for item in self.skipped_items)
+            skipped_section = f"\n## Skipped Items\n\n{skipped_lines}\n"
+
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write(self.summary_content + self.file_contents_section)
+            f.write(self.summary_content + self.file_contents_section + skipped_section)
 
     def _traverse_directory(self, root: Path, level: int):
         """ディレクトリを再帰的に走査し、構造の要約を作成する。"""
         indent = "  " * level
         relative_path = root.relative_to(self.project_dir)
-        if not self._is_ignored(relative_path):
-            self.summary_content += f"{indent}- {root.name}/\n"
-            for item_path in root.iterdir():
-                if item_path.is_dir():
-                    if not self._is_ignored(item_path):
-                        self._traverse_directory(item_path, level + 1)
-                else:
-                    if not self._is_ignored(item_path):
-                        self._handle_file(item_path, level + 1)
+        if self._is_ignored(relative_path, is_dir=True):
+            return
+
+        self.summary_content += f"{indent}- {root.name}/\n"
+
+        try:
+            items = sorted(root.iterdir(), key=lambda item: item.name.lower())
+        except OSError as exc:
+            self._record_skip(relative_path, f"directory could not be read: {exc}")
+            return
+
+        for item_path in items:
+            item_relative_path = item_path.relative_to(self.project_dir)
+
+            if self._is_linklike(item_path):
+                self._record_skip(item_relative_path, "symbolic links and junctions are skipped")
+                continue
+
+            try:
+                is_dir = item_path.is_dir()
+            except OSError as exc:
+                self._record_skip(item_relative_path, f"path type could not be determined: {exc}")
+                continue
+
+            if self._is_ignored(item_relative_path, is_dir=is_dir):
+                continue
+
+            if is_dir:
+                self._traverse_directory(item_path, level + 1)
+            else:
+                self._handle_file(item_path, level + 1)
 
     def _handle_file(self, file_path: Path, level: int):
         """個々のファイルを処理し、要約に追加する。"""
         if self.file_types and file_path.suffix not in self.file_types:
-            return  # Skip files not matching specified types
+            return
+
         indent = "  " * level
-        if self._is_binary(file_path):
-            self.summary_content += f"{indent}- {file_path.name} (binary file)\n"
-        else:
-            self.summary_content += f"{indent}- {file_path.name}\n"
-            content = self._read_file_contents(file_path)
-            if content.strip():
-                rel_path = file_path.relative_to(self.project_dir)
-                self.file_contents_section += (
-                    f"### {rel_path}\n\n```\n{content}\n```\n\n"
-                )
+        rel_path = file_path.relative_to(self.project_dir)
 
-    def _is_ignored(self, path: Path) -> bool:
-        """
-        無視パターンに基づいてパスを無視すべきかどうかをチェックする。
-        .gitignoreの挙動を模倣し、クロスプラットフォームで動作するように修正。
-        """
         try:
-            # WindowsでもLinuxでも比較できるように、パス区切り文字を'/'に正規化する
-            relative_path_str = str(path.relative_to(self.project_dir)).replace('\\', '/')
-        except ValueError:
-            # プロジェクトディレクトリ外など、通常は発生しないケース
-            return False
+            if self._is_binary(file_path):
+                self.summary_content += f"{indent}- {file_path.name} (binary file)\n"
+                return
+        except OSError as exc:
+            self.summary_content += f"{indent}- {file_path.name} (unreadable)\n"
+            self._record_skip(rel_path, f"file could not be inspected: {exc}")
+            return
 
-        patterns = (
-            self.gitignore.patterns
-            + self.summaryignore.patterns
-            + self.additional_ignore
+        try:
+            file_size = file_path.stat().st_size
+        except OSError as exc:
+            self.summary_content += f"{indent}- {file_path.name} (unreadable)\n"
+            self._record_skip(rel_path, f"file size could not be read: {exc}")
+            return
+
+        if file_size > self.max_text_file_bytes:
+            self.summary_content += (
+                f"{indent}- {file_path.name} (text file omitted: exceeds {self.max_text_file_bytes} bytes)\n"
+            )
+            self.file_contents_section += (
+                f"### {rel_path}\n\n"
+                f"(omitted: file is larger than {self.max_text_file_bytes} bytes)\n\n"
+            )
+            self._record_skip(rel_path, "file contents omitted because the file is too large")
+            return
+
+        content = self._read_file_contents(file_path)
+        if content is None:
+            self.summary_content += f"{indent}- {file_path.name} (unreadable text file)\n"
+            self._record_skip(rel_path, "file could not be decoded with supported encodings")
+            return
+
+        self.summary_content += f"{indent}- {file_path.name}\n"
+        if content.strip():
+            self.file_contents_section += f"### {rel_path}\n\n```\n{content}\n```\n\n"
+
+    def _is_ignored(self, path: Path, is_dir: bool) -> bool:
+        """無視パターンに基づいてパスを無視すべきかどうかをチェックする。"""
+        try:
+            relative_path = path.relative_to(self.project_dir)
+        except ValueError:
+            relative_path = path
+
+        return any(
+            ignore_patterns.matches(relative_path, is_dir=is_dir)
+            for ignore_patterns in (
+                self.gitignore,
+                self.summaryignore,
+                self.additional_ignore,
+            )
         )
 
-        for p in patterns:
-            # パターンも正規化
-            p_norm = p.replace('\\', '/').strip()
-            if not p_norm:
-                continue
+    def _record_skip(self, path: Path, reason: str):
+        path_text = Path(path).as_posix() if str(path) else "."
+        self.skipped_items.append(f"{path_text}: {reason}")
 
-            # ケース1: パターンが'/'で終わる場合 (例: 'venv/', 'docs/')
-            # これはディレクトリとその中身全てを無視するパターン
-            if p_norm.endswith('/'):
-                dir_pattern = p_norm.rstrip('/')
-                # パスがそのディレクトリ自身か、そのディレクトリから始まるかをチェック
-                if relative_path_str == dir_pattern or relative_path_str.startswith(dir_pattern + '/'):
-                    return True
-                continue
-
-            # ケース2: パターンに'/'が含まれない場合 (例: '*.log', '__pycache__')
-            # これはパスのどの部分（ファイル名やディレクトリ名）にでもマッチする
-            if '/' not in p_norm:
-                if fnmatch.fnmatch(path.name, p_norm):
-                    return True
-                continue
-
-            # ケース3: パターンに'/'が含まれる場合 (例: 'src/main.py')
-            # これはプロジェクトルートからの相対パスとしてマッチするかをチェック
-            if fnmatch.fnmatch(relative_path_str, p_norm):
+    @staticmethod
+    def _is_linklike(path: Path) -> bool:
+        try:
+            if path.is_symlink():
                 return True
+            path_stat = path.stat(follow_symlinks=False)
+        except OSError:
+            return False
 
-        return False
+        file_attributes = getattr(path_stat, "st_file_attributes", 0)
+        reparse_point = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        return bool(file_attributes & reparse_point)
 
     @staticmethod
     def _is_binary(file_path: Path) -> bool:
@@ -122,13 +176,12 @@ class ProjectSummarizer:
         with open(file_path, "rb") as f:
             return b"\0" in f.read(1024)
 
-    @staticmethod
-    def _read_file_contents(file_path: Path) -> str:
-        """文字コードに応じてファイルの内容を読み取る。デコードできない場合は空の文字列を返す。"""
-        for enc in ["utf-8", "shift_jis"]:
+    def _read_file_contents(self, file_path: Path):
+        """文字コードに応じてファイルの内容を読み取る。デコードできない場合は None を返す。"""
+        for enc in self.TEXT_ENCODINGS:
             try:
                 with open(file_path, "r", encoding=enc) as f:
                     return f.read()
-            except UnicodeDecodeError:
+            except (OSError, UnicodeDecodeError):
                 continue
-        return ""  # Return empty string if decoding fails
+        return None
