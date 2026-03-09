@@ -39,6 +39,14 @@ def main():
         default=[],
         help="Specify file types to include (e.g., .py, .md). Default: all files."
     )
+    parser.add_argument(
+        "-n", "--name-type-only",
+        action="store_true",
+        help=(
+            "Output only directory/file names and file kind (text/binary). "
+            "File contents are not included."
+        ),
+    )
     args = parser.parse_args()
 
     if args.directory is None:
@@ -63,7 +71,8 @@ def main():
     summarizer = ProjectSummarizer(
         project_directory,
         additional_ignore_patterns=args.ignore,
-        file_types=args.type
+        file_types=args.type,
+        name_type_only=args.name_type_only,
     )
     summarizer.generate_project_summary(output_file=args.output)
 
