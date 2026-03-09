@@ -120,3 +120,20 @@ def test_symlinked_directory_is_skipped(tmp_path):
     summary = output_file.read_text(encoding="utf-8")
     assert "secret.txt" not in summary
     assert "linked: symbolic links and junctions are skipped" in summary
+
+
+def test_name_type_only_mode_outputs_only_names_and_file_kind(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print('hi')", encoding="utf-8")
+    (tmp_path / "data.bin").write_bytes(b"\x00\x01\x02")
+
+    output_file = tmp_path / "summary.txt"
+    summarizer = ProjectSummarizer(tmp_path, name_type_only=True)
+    summarizer.generate_project_summary(output_file=output_file)
+
+    summary = output_file.read_text(encoding="utf-8")
+    assert "- src/" in summary
+    assert "- main.py (text file)" in summary
+    assert "- data.bin (binary file)" in summary
+    assert "## File Contents" not in summary
+    assert "### src/main.py" not in summary

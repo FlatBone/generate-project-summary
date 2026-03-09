@@ -134,6 +134,7 @@ venv/
 | `-o, --output FILE`| 出力ファイル名を指定できます。|
 | `-i, --ignore PATTERN`| 無視するファイル/フォルダのパターンを追加指定できます。<br>複数回使用可能 (`-i '*.log' -i 'temp/'`)。|
 | `-t, --type EXT`| 対象とするファイル拡張子を指定します。<br>デフォルトは全てのファイルが対象です。<br>複数回使用可能 (`-t .py -t .md`)。|
+| `-n, --name-type-only`| ディレクトリ名・ファイル名・ファイル種別（text/binary）のみを出力します。<br>ファイル内容は出力しません。|
 
 ### 使用例 / Examples
 
@@ -188,6 +189,15 @@ gen-pro -t .py -t .md
 
 ```sh
 gen-pro -d src -i '*.log' -t .py -t .md -o summary.txt
+```
+
+
+#### 7. ディレクトリ名・ファイル名・種別だけを出力する
+
+ファイル本文を含めず、構造とテキスト/バイナリ情報だけを抽出したい場合。
+
+```sh
+gen-pro -d src -n -o summary.txt
 ```
 
 ## 依存関係

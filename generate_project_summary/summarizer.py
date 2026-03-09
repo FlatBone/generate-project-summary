@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import stat
 
 from .ignore_patterns import IgnorePatterns
@@ -8,12 +8,19 @@ class ProjectSummarizer:
     DEFAULT_MAX_TEXT_FILE_BYTES = 1_000_000
     TEXT_ENCODINGS = ("utf-8", "utf-8-sig", "shift_jis")
 
-    def __init__(self, project_dir, additional_ignore_patterns=None, file_types=None):
+    def __init__(
+        self,
+        project_dir,
+        additional_ignore_patterns=None,
+        file_types=None,
+        name_type_only=False,
+    ):
         """
         Args:
             project_dir (str or Path): プロジェクトのディレクトリパス
             additional_ignore_patterns (list, optional): 追加の無視パターンリスト
             file_types (list, optional): 含めるファイル拡張子（例：['.py', '.md']）
+            name_type_only (bool, optional): True の場合、ディレクトリ/ファイル名とテキスト・バイナリ種別のみ出力
         """
         self.project_dir = Path(project_dir).resolve()
         self.project_name = self.project_dir.name
@@ -30,6 +37,7 @@ class ProjectSummarizer:
         self.additional_ignore = IgnorePatterns(patterns=internal_patterns)
 
         self.file_types = file_types or []
+        self.name_type_only = name_type_only
         self.summary_content = ""
         self.file_contents_section = "\n## File Contents\n\n"
         self.skipped_items = []
@@ -54,7 +62,11 @@ class ProjectSummarizer:
             skipped_section = f"\n## Skipped Items\n\n{skipped_lines}\n"
 
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write(self.summary_content + self.file_contents_section + skipped_section)
+            content_sections = [self.summary_content]
+            if not self.name_type_only:
+                content_sections.append(self.file_contents_section)
+            content_sections.append(skipped_section)
+            f.write("".join(content_sections))
 
     def _traverse_directory(self, root: Path, level: int):
         """ディレクトリを再帰的に走査し、構造の要約を作成する。"""
@@ -101,12 +113,18 @@ class ProjectSummarizer:
         rel_path = file_path.relative_to(self.project_dir)
 
         try:
-            if self._is_binary(file_path):
-                self.summary_content += f"{indent}- {file_path.name} (binary file)\n"
-                return
+            is_binary = self._is_binary(file_path)
         except OSError as exc:
             self.summary_content += f"{indent}- {file_path.name} (unreadable)\n"
             self._record_skip(rel_path, f"file could not be inspected: {exc}")
+            return
+
+        if is_binary:
+            self.summary_content += f"{indent}- {file_path.name} (binary file)\n"
+            return
+
+        if self.name_type_only:
+            self.summary_content += f"{indent}- {file_path.name} (text file)\n"
             return
 
         try:
