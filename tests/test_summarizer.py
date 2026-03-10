@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from generate_project_summary.summarizer import ProjectSummarizer
 
@@ -11,12 +11,12 @@ def test_gitignore_handling(setup_project):
     content = output_file.read_text(encoding="utf-8")
 
     assert "temp.log" not in content
-    assert ".venv" not in content
-    assert "guide.md" not in content
     assert "main.py" in content
 
     structure_part, contents_part = content.split("\n## File Contents\n\n", 1)
     assert ".gitignore" in structure_part
+    assert ".venv" not in structure_part
+    assert "guide.md" not in structure_part
     assert "### .gitignore" in contents_part.replace("\\", "/")
     assert ".venv/" in contents_part
 

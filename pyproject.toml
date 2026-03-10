@@ -1,18 +1,32 @@
 [tool.poetry]
 name = "generate-project-summary"
-version = "0.1.0"
-description = "AIに読みやすいよう､プロジェクトの構造とファイル内容のサマリーをMarkdownに生成する。"
-authors = ["Your Name <you@example.com>"]
+version = "0.1.1"
+description = "AIに読み込ませやすいように、プロジェクトの構成とファイル内容をMarkdownに出力するCLIツール"
+authors = ["Olemi"]
+license = "MIT"
+readme = "README.md"
+keywords = ["project-summary", "markdown", "cli", "documentation", "codebase"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Utilities",
+]
 
 [tool.poetry.scripts]
 generate-project-summary = "generate_project_summary.main:main"
 gen-pro = "generate_project_summary.main:main"
 
-[tool.setuptools]
-package-dir = { "" = "generate_project_summary" }
-
 [tool.poetry.dependencies]
-python = "*"
+python = ">=3.9,<4.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
@@ -20,4 +34,3 @@ pytest = "*"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-

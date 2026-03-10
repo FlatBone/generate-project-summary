@@ -6,5 +6,7 @@ __pycache__/
 # virtualenv
 .venv/
 venv/
+.testpypi-venv*/
+dist/
 *_project_summary.txt
 .pytest_cache/
