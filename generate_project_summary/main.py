@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from .progress import StderrProgressReporter
 from .summarizer import ProjectSummarizer
 
 
@@ -73,6 +74,7 @@ def main():
         additional_ignore_patterns=args.ignore,
         file_types=args.type,
         name_type_only=args.name_type_only,
+        progress_callback=StderrProgressReporter(),
     )
     summarizer.generate_project_summary(output_file=args.output)
 

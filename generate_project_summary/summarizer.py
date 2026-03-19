@@ -14,6 +14,7 @@ class ProjectSummarizer:
         additional_ignore_patterns=None,
         file_types=None,
         name_type_only=False,
+        progress_callback=None,
     ):
         """
         Args:
@@ -38,10 +39,13 @@ class ProjectSummarizer:
 
         self.file_types = file_types or []
         self.name_type_only = name_type_only
+        self.progress_callback = progress_callback
         self.summary_content = ""
         self.file_contents_section = "\n## File Contents\n\n"
         self.skipped_items = []
         self.max_text_file_bytes = self.DEFAULT_MAX_TEXT_FILE_BYTES
+        self.total_files = 0
+        self.processed_files = 0
 
     def generate_project_summary(self, output_file=None):
         """
@@ -53,6 +57,11 @@ class ProjectSummarizer:
         self.summary_content = f"# {self.project_name}\n\n## Directory Structure\n\n"
         self.file_contents_section = "\n## File Contents\n\n"
         self.skipped_items = []
+        self.total_files = 0
+        self.processed_files = 0
+        self._notify_progress("count_start")
+        self._count_target_files(self.project_dir)
+        self._notify_progress("process_start", total_files=self.total_files)
         self._traverse_directory(self.project_dir, 0)
         output_file = output_file or f"{self.project_name}_project_summary.txt"
 
@@ -62,11 +71,52 @@ class ProjectSummarizer:
             skipped_section = f"\n## Skipped Items\n\n{skipped_lines}\n"
 
         with open(output_file, "w", encoding="utf-8") as f:
+            self._notify_progress("write_start", output_file=output_file)
             content_sections = [self.summary_content]
             if not self.name_type_only:
                 content_sections.append(self.file_contents_section)
             content_sections.append(skipped_section)
             f.write("".join(content_sections))
+        self._notify_progress(
+            "done",
+            output_file=output_file,
+            total_files=self.total_files,
+            processed_files=self.processed_files,
+        )
+
+    def _count_target_files(self, root: Path):
+        relative_path = root.relative_to(self.project_dir)
+        if self._is_ignored(relative_path, is_dir=True):
+            return
+
+        try:
+            items = sorted(root.iterdir(), key=lambda item: item.name.lower())
+        except OSError:
+            return
+
+        for item_path in items:
+            item_relative_path = item_path.relative_to(self.project_dir)
+
+            if self._is_linklike(item_path):
+                continue
+
+            try:
+                is_dir = item_path.is_dir()
+            except OSError:
+                continue
+
+            if self._is_ignored(item_relative_path, is_dir=is_dir):
+                continue
+
+            if is_dir:
+                self._count_target_files(item_path)
+                continue
+
+            if self.file_types and item_path.suffix not in self.file_types:
+                continue
+
+            self.total_files += 1
+            self._notify_progress("count_progress", counted_files=self.total_files)
 
     def _traverse_directory(self, root: Path, level: int):
         """ディレクトリを再帰的に走査し、構造の要約を作成する。"""
@@ -111,6 +161,13 @@ class ProjectSummarizer:
 
         indent = "  " * level
         rel_path = file_path.relative_to(self.project_dir)
+        self.processed_files += 1
+        self._notify_progress(
+            "file_processed",
+            path=rel_path,
+            processed_files=self.processed_files,
+            total_files=self.total_files,
+        )
 
         try:
             is_binary = self._is_binary(file_path)
@@ -174,6 +231,14 @@ class ProjectSummarizer:
     def _record_skip(self, path: Path, reason: str):
         path_text = Path(path).as_posix() if str(path) else "."
         self.skipped_items.append(f"{path_text}: {reason}")
+
+    def _notify_progress(self, event_name: str, **payload):
+        if self.progress_callback is None:
+            return
+
+        event = {"event": event_name}
+        event.update(payload)
+        self.progress_callback(event)
 
     @staticmethod
     def _is_linklike(path: Path) -> bool:
