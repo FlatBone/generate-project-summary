@@ -137,3 +137,24 @@ def test_name_type_only_mode_outputs_only_names_and_file_kind(tmp_path):
     assert "- data.bin (binary file)" in summary
     assert "## File Contents" not in summary
     assert "### src/main.py" not in summary
+
+
+def test_summarizer_reports_progress_events(tmp_path):
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print('hi')", encoding="utf-8")
+    (tmp_path / "README.md").write_text("# demo", encoding="utf-8")
+
+    events = []
+    summarizer = ProjectSummarizer(tmp_path, progress_callback=events.append)
+    summarizer.generate_project_summary(output_file=tmp_path / "summary.txt")
+
+    assert events[0]["event"] == "count_start"
+    assert any(event["event"] == "count_progress" for event in events)
+    assert any(
+        event["event"] == "process_start" and event["total_files"] == 2
+        for event in events
+    )
+    file_events = [event for event in events if event["event"] == "file_processed"]
+    assert len(file_events) == 2
+    assert file_events[-1]["processed_files"] == 2
+    assert events[-1]["event"] == "done"

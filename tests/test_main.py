@@ -43,7 +43,7 @@ def test_main_name_type_only_mode(monkeypatch, tmp_path):
 
 
 def test_main_name_type_only_short_option(monkeypatch, tmp_path):
-    (tmp_path / "main.py").write_text("print(\'hello\')", encoding="utf-8")
+    (tmp_path / "main.py").write_text("print('hello')", encoding="utf-8")
     output_file = tmp_path / "summary_short.txt"
 
     monkeypatch.setattr(

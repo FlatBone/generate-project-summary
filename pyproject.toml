@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "generate-project-summary"
-version = "0.1.1"
+version = "0.1.2"
 description = "AIに読み込ませやすいように、プロジェクトの構成とファイル内容をMarkdownに出力するCLIツール"
 authors = ["Olemi"]
 license = "MIT"
